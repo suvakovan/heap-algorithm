@@ -38,6 +38,36 @@ class TaskManager:
         # Return sorted list of tasks (copy) without modifying heap
         return [{'priority': t[0], 'id': t[1], 'name': t[2]} for t in sorted(self.task_heap)]
 
+    def get_task(self, task_id):
+        for t in self.task_heap:
+            if t[1] == task_id:
+                return {'priority': t[0], 'id': t[1], 'name': t[2]}
+        return None
+
+    def delete_task(self, task_id):
+        # Find index of task
+        for i, t in enumerate(self.task_heap):
+            if t[1] == task_id:
+                # Remove and re-heapify
+                self.task_heap.pop(i)
+                heapq.heapify(self.task_heap)
+                return True
+        return False
+
+    def update_task(self, task_id, new_priority=None, new_name=None):
+        for i, t in enumerate(self.task_heap):
+            if t[1] == task_id:
+                priority, tid, name = t
+                if new_priority is not None:
+                    priority = new_priority
+                if new_name is not None:
+                    name = new_name
+                
+                self.task_heap[i] = (priority, tid, name)
+                heapq.heapify(self.task_heap)
+                return True
+        return False
+
 # -----------------------------
 # Main Program
 # -----------------------------
