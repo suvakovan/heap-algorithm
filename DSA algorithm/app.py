@@ -34,5 +34,34 @@ def execute_task():
         return jsonify({"success": True, "task": task})
     return jsonify({"success": False, "message": "No tasks to execute"}), 200
 
+@app.route('/get/<int:task_id>', methods=['GET'])
+def get_task_by_id(task_id):
+    task = manager.get_task(task_id)
+    if task:
+        return jsonify({"success": True, "task": task})
+    return jsonify({"success": False, "message": "Task not found"}), 404
+
+@app.route('/delete/<int:task_id>', methods=['DELETE'])
+def delete_task_by_id(task_id):
+    if manager.delete_task(task_id):
+        return jsonify({"success": True, "message": "Task deleted successfully"})
+    return jsonify({"success": False, "message": "Task not found"}), 404
+
+@app.route('/update/<int:task_id>', methods=['PUT'])
+def update_task_by_id(task_id):
+    data = request.json
+    new_priority = data.get('priority')
+    new_name = data.get('name')
+    
+    if new_priority is not None:
+        try:
+            new_priority = int(new_priority)
+        except ValueError:
+             return jsonify({"success": False, "message": "Invalid priority"}), 400
+
+    if manager.update_task(task_id, new_priority, new_name):
+        return jsonify({"success": True, "message": "Task updated successfully"})
+    return jsonify({"success": False, "message": "Task not found"}), 404
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
