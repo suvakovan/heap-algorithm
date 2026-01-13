@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Task Priority <span class="highlight">Manager</span></h1>
+            <p>Heap-based Scheduling System</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Input Section -->
+            <section class="card input-card">
+                <h2>Add New Task</h2>
+                <div class="form-group">
+                    <label for="taskName">Task Name</label>
+                    <input type="text" id="taskName" placeholder="e.g., Study for Finals" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">Priority (1 = Highest)</label>
+                    <input type="number" id="taskPriority" placeholder="1" min="1">
+                </div>
+                <button id="addTaskBtn" class="btn btn-primary">
+                    <span class="icon">+</span> Add Task
+                </button>
+            </section>
+
+            <!-- Execution Section -->
+            <section class="card execute-card">
+                <h2>Current Execution</h2>
+                <div id="executionArea" class="execution-box">
+                    <p class="placeholder-text">Waiting to execute...</p>
+                </div>
+                <button id="executeBtn" class="btn btn-danger">
+                    <span class="icon">▶</span> Execute Top Priority
+                </button>
+            </section>
+        </div>
+
+        <!-- Task List Section -->
+        <section class="card list-card">
+            <div class="list-header">
+                <h2>Pending Tasks</h2>
+                <span id="taskCount" class="badge">0</span>
+            </div>
+            <div id="taskList" class="task-list">
+                <!-- Tasks will be injected here -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000';
+
+        async function fetchTasks() {
+            const res = await fetch(`${API_URL}/tasks`);
+            const tasks = await res.json();
+            renderTasks(tasks);
+        }
+
+        function renderTasks(tasks) {
+            const list = document.getElementById('taskList');
+            const count = document.getElementById('taskCount');
+            list.innerHTML = '';
+            count.textContent = tasks.length;
+
+            if (tasks.length === 0) {
+                list.innerHTML = '<div class="empty-state">No pending tasks. Great job!</div>';
+                return;
+            }
+
+            tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = 'task-item';
+                // Color coding based on priority
+                let priorityClass = 'p-low';
+                if (task.priority === 1) priorityClass = 'p-urgent';
+                else if (task.priority <= 3) priorityClass = 'p-medium';
+
+                item.innerHTML = `
+                    <div class="task-info">
+                        <span class="task-name">${task.name}</span>
+                        <span class="task-id">ID: ${task.id}</span>
+                    </div>
+                    <div class="priority-badge ${priorityClass}">
+                        Priority ${task.priority}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        document.getElementById('addTaskBtn').addEventListener('click', async () => {
+            const name = document.getElementById('taskName').value;
+            const priority = document.getElementById('taskPriority').value;
+
+            if (!name || !priority) {
+                alert('Please fill in both fields');
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/add`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, priority })
+            });
+            
+            if (res.ok) {
+                document.getElementById('taskName').value = '';
+                document.getElementById('taskPriority').value = '';
+                fetchTasks();
+            }
+        });
+
+        document.getElementById('executeBtn').addEventListener('click', async () => {
+            const res = await fetch(`${API_URL}/execute`, { method: 'POST' });
+            const data = await res.json();
+            
+            const area = document.getElementById('executionArea');
+            if (data.success) {
+                area.innerHTML = `
+                    <div class="executed-task animate-pop">
+                        <span class="executed-label">EXECUTING</span>
+                        <h3>${data.task.name}</h3>
+                        <p>Priority ${data.task.priority}</p>
+                    </div>
+                `;
+                fetchTasks();
+            } else {
+                area.innerHTML = `<p class="placeholder-text">${data.message}</p>`;
+            }
+        });
+
+        // Initial Load
+        fetchTasks();
+    </script>
+</body>
+</html>
