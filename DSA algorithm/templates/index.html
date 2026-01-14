@@ -64,6 +64,29 @@
         </section>
     </div>
 
+    <!-- Update Task Modal -->
+    <div class="modal-overlay" id="updateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Task</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="updateName">Task Name</label>
+                <input type="text" id="updateName">
+            </div>
+            <div class="form-group">
+                <label for="updatePriority">Priority</label>
+                <input type="number" id="updatePriority" min="1">
+            </div>
+            <input type="hidden" id="updateId">
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="saveUpdateBtn">Save Changes</button>
+                <button class="btn btn-danger" id="cancelUpdateBtn" style="background: transparent; color: var(--text-muted); box-shadow: none; border: 1px solid var(--glass-border);">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'http://127.0.0.1:5000';
 
@@ -97,8 +120,14 @@
                         <span class="task-name">${task.name}</span>
                         <span class="task-id">ID: ${task.id}</span>
                     </div>
-                    <div class="priority-badge ${priorityClass}">
-                        Priority ${task.priority}
+                    <div style="display: flex; align-items: center;">
+                        <div class="priority-badge ${priorityClass}">
+                            Priority ${task.priority}
+                        </div>
+                        <div class="task-actions">
+                             <button class="btn btn-sm btn-edit" onclick="openUpdateModal(${task.id}, '${task.name.replace(/'/g, "\\'")}', ${task.priority})">Edit</button>
+                             <button class="btn btn-sm btn-delete-sm" onclick="deleteTask(${task.id})">Delete</button>
+                        </div>
                     </div>
                 `;
                 list.appendChild(item);
@@ -148,6 +177,49 @@
 
         // Initial Load
         fetchTasks();
+
+        // New Feature Functions
+        async function deleteTask(id) {
+            if(!confirm('Are you sure you want to delete this task?')) return;
+            const res = await fetch(`${API_URL}/delete/${id}`, { method: 'DELETE' });
+            if(res.ok) fetchTasks();
+        }
+
+        const modal = document.getElementById('updateModal');
+        const closeBtn = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelUpdateBtn');
+        const saveBtn = document.getElementById('saveUpdateBtn');
+
+        function openUpdateModal(id, name, priority) {
+            document.getElementById('updateId').value = id;
+            document.getElementById('updateName').value = name;
+            document.getElementById('updatePriority').value = priority;
+            modal.classList.add('active');
+        }
+
+        function closeUpdateModal() {
+            modal.classList.remove('active');
+        }
+
+        closeBtn.addEventListener('click', closeUpdateModal);
+        cancelBtn.addEventListener('click', closeUpdateModal);
+
+        saveBtn.addEventListener('click', async () => {
+            const id = document.getElementById('updateId').value;
+            const name = document.getElementById('updateName').value;
+            const priority = document.getElementById('updatePriority').value;
+
+            const res = await fetch(`${API_URL}/update/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, priority })
+            });
+
+            if(res.ok) {
+                closeUpdateModal();
+                fetchTasks();
+            }
+        });
     </script>
 </body>
 </html>
